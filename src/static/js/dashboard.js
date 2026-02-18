@@ -140,7 +140,8 @@ const Dashboard = {
 
     renderApiReference() {
         const baseUrl = this.getBaseUrl();
-        document.getElementById("api-base-url").textContent = baseUrl;
+        document.getElementById("api-base-url").textContent = baseUrl + "/v1";
+        document.getElementById("api-server-url").textContent = baseUrl;
 
         const tbody = document.getElementById("api-ref-tbody");
         tbody.innerHTML = API_ENDPOINTS.map(ep => {
