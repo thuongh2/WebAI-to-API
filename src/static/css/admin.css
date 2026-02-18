@@ -324,7 +324,7 @@ details.collapsible summary:hover { color: var(--text-primary); }
 
 .api-ref-table td:last-child { text-align: center; font-family: var(--font-sans); }
 .api-ref-table .api-desc { color: var(--text-secondary); font-size: 0.825rem; }
-.api-ref-table code { color: var(--text-primary); }
+.api-ref-table code { color: var(--text-primary); word-break: break-all; }
 
 .method-badge {
     display: inline-block;

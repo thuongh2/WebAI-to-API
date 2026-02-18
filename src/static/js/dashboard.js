@@ -1,13 +1,11 @@
 // src/static/js/dashboard.js - Dashboard tab logic
 
 const API_ENDPOINTS = [
-    { method: "GET",  path: "/v1/models", desc: "List available models (OpenAI-compatible)" },
-    { method: "POST", path: "/v1/chat/completions", desc: "OpenAI-compatible chat completions" },
-    { method: "POST", path: "/gemini", desc: "Stateless content generation" },
-    { method: "POST", path: "/gemini-chat", desc: "Stateful chat with context" },
-    { method: "POST", path: "/translate", desc: "Translation (alias for gemini-chat)" },
-    { method: "POST", path: "/v1beta/models/{model}", desc: "Google Generative AI format" },
-    { method: "GET",  path: "/docs", desc: "Swagger / OpenAPI documentation" },
+    { method: "GET",  path: "/v1/models", desc: "List available models" },
+    { method: "POST", path: "/v1/chat/completions", desc: "Chat completions — OpenAI format" },
+    { method: "POST", path: "/v1beta/models/{model}", desc: "Generate content — Google AI format" },
+    { method: "POST", path: "/gemini", desc: "Generate content — simple JSON format" },
+    { method: "POST", path: "/gemini-chat", desc: "Chat with context — simple JSON format" },
 ];
 
 const Dashboard = {
@@ -141,17 +139,15 @@ const Dashboard = {
     renderApiReference() {
         const baseUrl = this.getBaseUrl();
         document.getElementById("api-base-url").textContent = baseUrl + "/v1";
-        document.getElementById("api-server-url").textContent = baseUrl;
 
         const tbody = document.getElementById("api-ref-tbody");
         tbody.innerHTML = API_ENDPOINTS.map(ep => {
             const fullUrl = baseUrl + ep.path;
-            const urlId = "url-" + ep.path.replace(/[^a-zA-Z0-9]/g, "-");
             return `<tr>
                 <td><span class="method-badge method-${ep.method.toLowerCase()}">${ep.method}</span></td>
-                <td><code id="${urlId}" class="api-url">${escapeHtml(ep.path)}</code></td>
+                <td><code class="api-url">${escapeHtml(fullUrl)}</code></td>
                 <td class="api-desc">${escapeHtml(ep.desc)}</td>
-                <td><button class="btn btn-small btn-copy" data-copy-value="${escapeHtml(fullUrl)}" title="Copy full URL">Copy</button></td>
+                <td><button class="btn btn-small btn-copy" data-copy-value="${escapeHtml(fullUrl)}" title="Copy URL">Copy</button></td>
             </tr>`;
         }).join("");
 
