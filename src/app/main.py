@@ -7,7 +7,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.services.gemini_client import get_gemini_client, init_gemini_client, GeminiClientNotInitializedError
+from app.services.gemini_client import get_gemini_client, init_gemini_client, GeminiClientNotInitializedError, start_cookie_persister, stop_cookie_persister
 from app.services.session_manager import init_session_managers
 from app.services.log_broadcaster import SSELogBroadcaster, BroadcastLogHandler
 from app.services.stats_collector import StatsCollector
@@ -58,13 +58,15 @@ async def lifespan(app: FastAPI):
     try:
         get_gemini_client()
         init_session_managers()
+        start_cookie_persister()
         logger.info("Session managers initialized for WebAI-to-API.")
     except GeminiClientNotInitializedError as e:
         logger.warning(f"Session managers not initialized: {e}")
 
     yield
 
-    # Remove log handler on shutdown
+    # Cleanup on shutdown
+    stop_cookie_persister()
     logging.getLogger().removeHandler(handler)
     logger.info("Application shutdown complete.")
 
