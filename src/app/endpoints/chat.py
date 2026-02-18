@@ -2,11 +2,28 @@
 import time
 from fastapi import APIRouter, HTTPException
 from app.logger import logger
-from schemas.request import GeminiRequest, OpenAIChatRequest
+from app.config import CONFIG
+from schemas.request import GeminiModels, GeminiRequest, OpenAIChatRequest
 from app.services.gemini_client import get_gemini_client, GeminiClientNotInitializedError
 from app.services.session_manager import get_translate_session_manager
 
 router = APIRouter()
+
+
+@router.get("/v1/models")
+async def list_models():
+    """List available models in OpenAI-compatible format."""
+    now = int(time.time())
+    models = [
+        {
+            "id": m.value,
+            "object": "model",
+            "created": now,
+            "owned_by": "google",
+        }
+        for m in GeminiModels
+    ]
+    return {"object": "list", "data": models}
 
 @router.post("/translate")
 async def translate_chat(request: GeminiRequest):

@@ -275,7 +275,26 @@ details.collapsible summary:hover { color: var(--text-primary); }
 .result-box.success { background: var(--success-bg); color: var(--success); }
 .result-box.error { background: var(--error-bg); color: var(--error); }
 .result-box.warning { background: var(--warning-bg); color: var(--warning); }
+.result-box strong { display: block; margin-bottom: 4px; }
 .hidden { display: none; }
+
+.error-steps {
+    margin: 8px 0 4px 0;
+    padding-left: 8px;
+    list-style: none;
+    font-size: 0.825rem;
+    line-height: 1.7;
+}
+.error-steps li { color: var(--text-primary); }
+.error-note {
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: rgba(255,255,255,0.04);
+    border-radius: var(--radius-sm);
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-style: italic;
+}
 
 .inline-result {
     font-size: 0.8rem;

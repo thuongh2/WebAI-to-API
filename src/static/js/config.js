@@ -70,13 +70,16 @@ const Config = {
 
         try {
             const data = await api.post("/api/admin/config/curl-import", { curl_text: text });
+            // Always refresh — cookies are saved even if reinit fails
+            this.refresh();
+            Dashboard.refresh();
             if (data.success) {
-                showResult(resultDiv, "success", data.message + (data.url_detected ? " (URL: " + data.url_detected + ")" : ""));
+                showResult(resultDiv, "success", data.message);
                 textarea.value = "";
-                this.refresh();
-                Dashboard.refresh();
             } else {
-                showResult(resultDiv, "warning", data.message);
+                const html = buildErrorMessage(data);
+                showResultHtml(resultDiv, "error",
+                    `<strong>Cookies saved</strong>, but connection failed:<br><br>` + html);
             }
         } catch (err) {
             const detail = err.detail || {};
@@ -105,11 +108,16 @@ const Config = {
                 secure_1psid: psid,
                 secure_1psidts: psidts,
             });
-            showResult(resultDiv, data.success ? "success" : "warning", data.message);
-            document.getElementById("manual-1psid").value = "";
-            document.getElementById("manual-1psidts").value = "";
             this.refresh();
             Dashboard.refresh();
+            if (data.success) {
+                showResult(resultDiv, "success", data.message);
+                document.getElementById("manual-1psid").value = "";
+                document.getElementById("manual-1psidts").value = "";
+            } else {
+                showResultHtml(resultDiv, "error",
+                    `<strong>Cookies saved</strong>, but connection failed:<br><br>` + buildErrorMessage(data));
+            }
         } catch (err) {
             showResult(resultDiv, "error", "Failed: " + (err.detail || "Unknown error"));
         }

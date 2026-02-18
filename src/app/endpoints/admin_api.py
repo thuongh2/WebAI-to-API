@@ -58,6 +58,7 @@ async def get_status():
     return {
         "gemini_status": gemini_status,
         "client_error": client_status.get("error"),
+        "error_code": client_status.get("error_code"),
         "current_model": CONFIG["AI"].get("default_model_gemini", "unknown"),
         "proxy": CONFIG["Proxy"].get("http_proxy", ""),
         "browser": CONFIG["Browser"].get("name", "unknown"),
@@ -114,13 +115,17 @@ async def import_from_curl(request: CurlImportRequest):
     write_config(CONFIG)
     logger.info("Cookies imported from cURL, reinitializing client...")
     success = await init_gemini_client()
+    status = get_client_status()
     return {
         "success": success,
+        "cookies_saved": True,
         "message": (
-            "Cookies imported and client reinitialized"
+            "Cookies imported and client connected successfully!"
             if success
-            else "Cookies imported but client reinitialization failed"
+            else "Cookies saved but connection failed"
         ),
+        "error_code": status.get("error_code"),
+        "error_detail": status.get("error"),
         "url_detected": result.url,
     }
 
@@ -133,9 +138,13 @@ async def update_cookies(request: CookieUpdateRequest):
     write_config(CONFIG)
     logger.info("Cookies updated via admin UI, reinitializing client...")
     success = await init_gemini_client()
+    status = get_client_status()
     return {
         "success": success,
-        "message": "Client reinitialized" if success else "Reinitialization failed",
+        "cookies_saved": True,
+        "message": "Client connected successfully!" if success else "Cookies saved but connection failed",
+        "error_code": status.get("error_code"),
+        "error_detail": status.get("error"),
     }
 
 
@@ -161,9 +170,12 @@ async def update_proxy(request: ProxyUpdateRequest):
 async def reinitialize_client():
     """Force reinitialize the Gemini client with current config."""
     success = await init_gemini_client()
+    status = get_client_status()
     return {
         "success": success,
-        "message": "Client reinitialized" if success else "Reinitialization failed",
+        "message": "Client connected successfully!" if success else "Connection failed",
+        "error_code": status.get("error_code"),
+        "error_detail": status.get("error"),
     }
 
 

@@ -16,14 +16,16 @@ class GeminiClientNotInitializedError(Exception):
 # Global variable to store the Gemini client instance
 _gemini_client = None
 _initialization_error = None
+_error_code = None  # "auth_expired", "no_cookies", "network", "disabled", "unknown"
 
 async def init_gemini_client() -> bool:
     """
     Initialize and set up the Gemini client based on the configuration.
     Returns True on success, False on failure.
     """
-    global _gemini_client, _initialization_error
+    global _gemini_client, _initialization_error, _error_code
     _initialization_error = None
+    _error_code = None
 
     if CONFIG.getboolean("EnabledAI", "gemini", fallback=True):
         try:
@@ -45,28 +47,35 @@ async def init_gemini_client() -> bool:
                 logger.info("Gemini client initialized successfully.")
                 return True
             else:
-                error_msg = "Gemini cookies not found. Please provide cookies in config.conf or ensure browser is logged in."
-                logger.error(error_msg)
-                _initialization_error = error_msg
+                _error_code = "no_cookies"
+                _initialization_error = "Gemini cookies not found."
+                logger.error(_initialization_error)
                 return False
 
         except AuthError as e:
-            error_msg = f"Gemini authentication failed: {e}. This usually means cookies are expired or invalid."
-            logger.error(error_msg)
+            _error_code = "auth_expired"
+            _initialization_error = str(e)
+            logger.error(f"Gemini authentication failed: {e}")
             _gemini_client = None
-            _initialization_error = error_msg
+            return False
+
+        except (ConnectionError, OSError, TimeoutError) as e:
+            _error_code = "network"
+            _initialization_error = str(e)
+            logger.error(f"Network error initializing Gemini client: {e}")
+            _gemini_client = None
             return False
 
         except Exception as e:
-            error_msg = f"Unexpected error initializing Gemini client: {e}"
-            logger.error(error_msg, exc_info=True)
+            _error_code = "unknown"
+            _initialization_error = str(e)
+            logger.error(f"Unexpected error initializing Gemini client: {e}", exc_info=True)
             _gemini_client = None
-            _initialization_error = error_msg
             return False
     else:
-        error_msg = "Gemini client is disabled in config."
-        logger.info(error_msg)
-        _initialization_error = error_msg
+        _error_code = "disabled"
+        _initialization_error = "Gemini client is disabled in config."
+        logger.info(_initialization_error)
         return False
 
 
@@ -88,5 +97,6 @@ def get_client_status() -> dict:
     return {
         "initialized": _gemini_client is not None,
         "error": _initialization_error,
+        "error_code": _error_code,
     }
 

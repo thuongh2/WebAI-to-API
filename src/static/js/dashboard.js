@@ -1,6 +1,7 @@
 // src/static/js/dashboard.js - Dashboard tab logic
 
 const API_ENDPOINTS = [
+    { method: "GET",  path: "/v1/models", desc: "List available models (OpenAI-compatible)" },
     { method: "POST", path: "/v1/chat/completions", desc: "OpenAI-compatible chat completions" },
     { method: "POST", path: "/gemini", desc: "Stateless content generation" },
     { method: "POST", path: "/gemini-chat", desc: "Stateful chat with context" },
@@ -15,14 +16,19 @@ const Dashboard = {
     init() {
         document.getElementById("btn-reinit").addEventListener("click", async () => {
             const btn = document.getElementById("btn-reinit");
-            const result = document.getElementById("reinit-result");
+            const resultEl = document.getElementById("reinit-result");
             btn.disabled = true;
             btn.textContent = "Reinitializing...";
             try {
                 const data = await api.post("/api/admin/client/reinitialize");
-                showInline(result, data.message, !data.success);
+                if (data.success) {
+                    showInline(resultEl, data.message, false);
+                } else {
+                    resultEl.innerHTML = buildErrorMessage(data);
+                    resultEl.style.color = "var(--error)";
+                }
             } catch (err) {
-                showInline(result, "Failed: " + (err.detail || "Unknown error"), true);
+                showInline(resultEl, "Failed: " + (err.detail || "Unknown error"), true);
             } finally {
                 btn.disabled = false;
                 btn.textContent = "Reinitialize Gemini Client";
@@ -74,8 +80,29 @@ const Dashboard = {
 
     updateCards(data) {
         const statusEl = document.getElementById("val-status");
-        statusEl.textContent = data.gemini_status === "connected" ? "Connected" : "Disconnected";
-        statusEl.style.color = data.gemini_status === "connected" ? "var(--success)" : "var(--error)";
+        const statusCard = document.getElementById("card-status");
+        if (data.gemini_status === "connected") {
+            statusEl.textContent = "Connected";
+            statusEl.style.color = "var(--success)";
+            statusCard.querySelector(".stat-detail")?.remove();
+        } else {
+            statusEl.textContent = "Disconnected";
+            statusEl.style.color = "var(--error)";
+            // Show error hint under status card
+            let detailEl = statusCard.querySelector(".stat-detail");
+            if (!detailEl) {
+                detailEl = document.createElement("div");
+                detailEl.className = "stat-detail";
+                statusCard.appendChild(detailEl);
+            }
+            const hints = {
+                auth_expired: "Cookie expired — get fresh cookies",
+                no_cookies: "No cookies — go to Configuration tab",
+                network: "Network error — check connection/proxy",
+                disabled: "Gemini disabled in config",
+            };
+            detailEl.innerHTML = `<span class="error">${escapeHtml(hints[data.error_code] || data.client_error || "Check Configuration tab")}</span>`;
+        }
 
         document.getElementById("val-model").textContent = data.current_model || "--";
         document.getElementById("val-requests").textContent = data.stats.total_requests;
