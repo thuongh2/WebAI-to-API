@@ -1,5 +1,14 @@
 // src/static/js/dashboard.js - Dashboard tab logic
 
+const API_ENDPOINTS = [
+    { method: "POST", path: "/v1/chat/completions", desc: "OpenAI-compatible chat completions" },
+    { method: "POST", path: "/gemini", desc: "Stateless content generation" },
+    { method: "POST", path: "/gemini-chat", desc: "Stateful chat with context" },
+    { method: "POST", path: "/translate", desc: "Translation (alias for gemini-chat)" },
+    { method: "POST", path: "/v1beta/models/{model}", desc: "Google Generative AI format" },
+    { method: "GET",  path: "/docs", desc: "Swagger / OpenAPI documentation" },
+];
+
 const Dashboard = {
     intervalId: null,
 
@@ -19,6 +28,25 @@ const Dashboard = {
                 btn.textContent = "Reinitialize Gemini Client";
                 this.refresh();
             }
+        });
+
+        // Render API Reference (static, only once)
+        this.renderApiReference();
+
+        // Copy button handlers
+        document.querySelectorAll(".btn-copy").forEach(btn => {
+            btn.addEventListener("click", () => {
+                const targetId = btn.dataset.copyTarget;
+                const el = document.getElementById(targetId);
+                if (!el) return;
+                const text = el.textContent;
+                navigator.clipboard.writeText(text).then(() => {
+                    const orig = btn.textContent;
+                    btn.textContent = "Copied!";
+                    btn.classList.add("copied");
+                    setTimeout(() => { btn.textContent = orig; btn.classList.remove("copied"); }, 1500);
+                });
+            });
         });
     },
 
@@ -77,5 +105,39 @@ const Dashboard = {
         tbody.innerHTML = entries
             .map(([path, count]) => `<tr><td>${escapeHtml(path)}</td><td>${count}</td></tr>`)
             .join("");
+    },
+
+    getBaseUrl() {
+        return window.location.origin;
+    },
+
+    renderApiReference() {
+        const baseUrl = this.getBaseUrl();
+        document.getElementById("api-base-url").textContent = baseUrl;
+
+        const tbody = document.getElementById("api-ref-tbody");
+        tbody.innerHTML = API_ENDPOINTS.map(ep => {
+            const fullUrl = baseUrl + ep.path;
+            const urlId = "url-" + ep.path.replace(/[^a-zA-Z0-9]/g, "-");
+            return `<tr>
+                <td><span class="method-badge method-${ep.method.toLowerCase()}">${ep.method}</span></td>
+                <td><code id="${urlId}" class="api-url">${escapeHtml(ep.path)}</code></td>
+                <td class="api-desc">${escapeHtml(ep.desc)}</td>
+                <td><button class="btn btn-small btn-copy" data-copy-value="${escapeHtml(fullUrl)}" title="Copy full URL">Copy</button></td>
+            </tr>`;
+        }).join("");
+
+        // Attach click handlers for dynamically created copy buttons
+        tbody.querySelectorAll(".btn-copy").forEach(btn => {
+            btn.addEventListener("click", () => {
+                const text = btn.dataset.copyValue;
+                navigator.clipboard.writeText(text).then(() => {
+                    const orig = btn.textContent;
+                    btn.textContent = "Copied!";
+                    btn.classList.add("copied");
+                    setTimeout(() => { btn.textContent = orig; btn.classList.remove("copied"); }, 1500);
+                });
+            });
+        });
     },
 };

@@ -7,5 +7,6 @@ services:
   web_ai:
     build: .
     image: webai-to-api:dev
-    volumes:
-      - ./config.conf:/app/config.conf
+    # Uncomment below if your project path has no spaces:
+    # volumes:
+    #   - ./config.conf:/app/config.conf
