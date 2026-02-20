@@ -373,9 +373,38 @@ The project is built on a modular architecture designed for scalability and ease
 
 ---
 
-## 🐳 Docker Deployment Guide
+## 🐳 Docker Deployment
 
-For Docker setup and deployment instructions, please refer to the [Docker.md](Docker.md) documentation.
+### Quick Start
+
+```bash
+# 1. Clone and enter the repo
+git clone https://github.com/leolionart/WebAI-to-API.git
+cd WebAI-to-API
+
+# 2. Create config from template
+cp config.conf.example config.conf
+```
+
+Open `config.conf` and fill in your Gemini cookies:
+
+```ini
+[Cookies]
+gemini_cookie_1psid     = YOUR___Secure-1PSID_HERE
+gemini_cookie_1psidts   = YOUR___Secure-1PSIDTS_HERE
+```
+
+> Get cookies from [gemini.google.com](https://gemini.google.com) → DevTools → Application → Cookies
+
+```bash
+# 3. Start the server
+docker compose up -d
+```
+
+API is available at **`http://localhost:6969`**.
+Cookies are persisted in a Docker volume and auto-rotated — no manual refresh needed.
+
+For full details (port change, local build, Makefile shortcuts), see [Docker.md](Docker.md).
 
 ---
 
