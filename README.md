@@ -39,7 +39,7 @@ name = chrome
 
 [AI]
 default_ai = gemini
-default_model_gemini = gemini-2.5-flash
+default_model_gemini = gemini-2.0-flash-exp
 
 [Cookies]
 gemini_cookie_1psid   =
@@ -92,9 +92,10 @@ API Key:  not-needed
 
 | Model | Description |
 |-------|-------------|
-| `gemini-3.0-pro` | Most capable |
-| `gemini-2.5-pro` | Advanced reasoning |
-| `gemini-2.5-flash` | Fast, efficient (default) |
+| `gemini-2.0-exp-advanced` | Most capable |
+| `gemini-2.0-flash-exp` | Fast, efficient (default) |
+| `gemini-1.5-pro` | Stable, reliable |
+| `gemini-1.5-flash` | Lightweight |
 
 ### Example: curl
 
@@ -102,7 +103,7 @@ API Key:  not-needed
 curl http://localhost:6969/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "gemini-2.5-flash",
+    "model": "gemini-2.0-flash-exp",
     "messages": [{ "role": "user", "content": "Hello!" }]
   }'
 ```
@@ -118,7 +119,7 @@ client = OpenAI(
 )
 
 response = client.chat.completions.create(
-    model="gemini-2.5-flash",
+    model="gemini-2.0-flash-exp",
     messages=[{"role": "user", "content": "Hello!"}],
 )
 print(response.choices[0].message.content)
