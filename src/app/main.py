@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.services.gemini_client import get_gemini_client, init_gemini_client, GeminiClientNotInitializedError, start_cookie_persister, stop_cookie_persister
@@ -91,6 +92,11 @@ app.include_router(admin_api.router)
 
 # Mount static files for admin UI
 app.mount("/static", StaticFiles(directory=str(_SRC_DIR / "static")), name="static")
+
+
+@app.get("/")
+async def root():
+    return RedirectResponse(url="/admin")
 
 
 # Stats middleware - track API requests (skip static/admin)
