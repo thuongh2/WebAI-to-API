@@ -88,10 +88,9 @@ async def get_config():
         ),
         "gemini_enabled": CONFIG.getboolean("EnabledAI", "gemini", fallback=True),
         "available_models": [
-            "gemini-2.0-exp-advanced",
-            "gemini-2.0-flash-exp",
-            "gemini-1.5-pro",
-            "gemini-1.5-flash",
+            "gemini-3.0-pro",
+            "gemini-3.0-flash",
+            "gemini-3.0-flash-thinking",
         ],
     }
 

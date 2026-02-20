@@ -19,11 +19,10 @@ default_ai = gemini
 # --- Gemini Model Configuration ---
 # Choose the model to be used when Gemini is selected as the AI.
 # Available models:
-# - gemini-2.0-exp-advanced  (most capable)
-# - gemini-2.0-flash-exp     (fast, default)
-# - gemini-1.5-pro
-# - gemini-1.5-flash
-default_model_gemini = gemini-2.0-flash-exp
+# - gemini-3.0-pro            (most capable, requires Gemini Advanced)
+# - gemini-3.0-flash          (fast, default)
+# - gemini-3.0-flash-thinking (with extended thinking)
+default_model_gemini = gemini-3.0-flash
 
 # --- Gemini Cookies ---
 # Provide your authentication cookies for Gemini here.

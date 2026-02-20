@@ -5,21 +5,18 @@ from pydantic import BaseModel, Field
 
 class GeminiModels(str, Enum):
     """
-    Available Gemini models — names must match gemini-webapi's internal model list.
+    Available Gemini models (gemini-webapi >= 1.19.2).
     """
 
-    # Gemini 2.0 Series
-    EXP_ADVANCED = "gemini-2.0-exp-advanced"
-    FLASH_2_0 = "gemini-2.0-flash-exp"
-
-    # Gemini 1.5 Series
-    PRO_1_5 = "gemini-1.5-pro"
-    FLASH_1_5 = "gemini-1.5-flash"
+    # Gemini 3.0 Series
+    PRO = "gemini-3.0-pro"
+    FLASH = "gemini-3.0-flash"
+    FLASH_THINKING = "gemini-3.0-flash-thinking"
 
 
 class GeminiRequest(BaseModel):
     message: str
-    model: GeminiModels = Field(default=GeminiModels.FLASH_2_0, description="Model to use for Gemini.")
+    model: GeminiModels = Field(default=GeminiModels.FLASH, description="Model to use for Gemini.")
     files: Optional[List[str]] = []
 
 class OpenAIChatRequest(BaseModel):
