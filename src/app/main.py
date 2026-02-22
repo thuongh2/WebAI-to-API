@@ -15,7 +15,7 @@ from app.services.stats_collector import StatsCollector
 from app.logger import logger
 
 # Import endpoint routers
-from app.endpoints import gemini, chat, google_generative
+from app.endpoints import gemini, chat, google_generative, files, responses
 from app.endpoints import admin, admin_api
 
 _SRC_DIR = Path(__file__).resolve().parent.parent  # points to src/
@@ -85,6 +85,8 @@ app.add_middleware(
 app.include_router(gemini.router)
 app.include_router(chat.router)
 app.include_router(google_generative.router)
+app.include_router(files.router)
+app.include_router(responses.router)
 
 # Register admin routers
 app.include_router(admin.router)

@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', path='css/admin.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/admin.css') }}?v=8">
 </head>
 <body>
     <header class="admin-header">
@@ -82,7 +82,16 @@
                     Endpoint Activity
                 </h3>
                 <table class="data-table" id="endpoint-table">
-                    <thead><tr><th>Endpoint</th><th>Requests</th></tr></thead>
+                    <thead>
+                        <tr>
+                            <th>Endpoint</th>
+                            <th class="col-num">Requests</th>
+                            <th class="col-num">OK</th>
+                            <th class="col-num">ERR</th>
+                            <th class="col-num">% Traffic</th>
+                            <th>Last Seen</th>
+                        </tr>
+                    </thead>
                     <tbody id="endpoint-tbody"></tbody>
                 </table>
                 <p class="empty-state" id="no-endpoints">No requests yet</p>
@@ -110,6 +119,18 @@
                     </thead>
                     <tbody id="api-ref-tbody"></tbody>
                 </table>
+            </div>
+
+            <!-- ── cURL Examples ──────────────────────────────────── -->
+            <div class="section">
+                <h3>
+                    <span class="material-symbols-outlined">code</span>
+                    Usage Examples
+                </h3>
+                <p class="help-text">Ready-to-use cURL commands. Click a tab to switch example, use Copy to clipboard.</p>
+                <div class="curl-tabs" id="curl-tabs">
+                    <!-- rendered by dashboard.js -->
+                </div>
             </div>
 
             <div class="section">
@@ -226,10 +247,10 @@
         </section>
     </main>
 
-    <script src="{{ url_for('static', path='js/utils.js') }}"></script>
-    <script src="{{ url_for('static', path='js/dashboard.js') }}"></script>
-    <script src="{{ url_for('static', path='js/config.js') }}"></script>
-    <script src="{{ url_for('static', path='js/logs.js') }}"></script>
-    <script src="{{ url_for('static', path='js/app.js') }}"></script>
+    <script src="{{ url_for('static', path='js/utils.js') }}?v=8"></script>
+    <script src="{{ url_for('static', path='js/dashboard.js') }}?v=8"></script>
+    <script src="{{ url_for('static', path='js/config.js') }}?v=8"></script>
+    <script src="{{ url_for('static', path='js/logs.js') }}?v=8"></script>
+    <script src="{{ url_for('static', path='js/app.js') }}?v=8"></script>
 </body>
 </html>

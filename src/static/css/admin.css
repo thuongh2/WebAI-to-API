@@ -430,11 +430,51 @@ main { padding: 24px; max-width: 1200px; margin: 0 auto; }
 .data-table tr:last-child td { border-bottom: none; }
 .data-table tbody tr:hover td { background: rgba(168, 199, 250, 0.04); }
 
-#endpoint-table td:last-child {
+/* Endpoint activity table */
+#endpoint-table th.col-num {
+  text-align: right;
+  white-space: nowrap;
+}
+#endpoint-table td.col-num {
   text-align: right;
   font-family: var(--font-mono);
   font-size: 0.825rem;
+  white-space: nowrap;
+}
+#endpoint-table td.ep-count { color: var(--md-on-surface); font-weight: 600; }
+#endpoint-table td.ep-ok    { color: var(--md-tertiary); }
+#endpoint-table td.ep-err   { color: var(--md-error); }
+#endpoint-table td.ep-path  { font-family: var(--font-mono); font-size: 0.85rem; }
+#endpoint-table td.ep-last  {
+  font-size: 0.775rem;
+  color: var(--md-outline);
+  white-space: nowrap;
+}
+
+/* % traffic bar */
+.pct-bar-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+  width: 100%;
+}
+.pct-label {
+  font-family: var(--font-mono);
+  font-size: 0.775rem;
   color: var(--md-on-surface-variant);
+  min-width: 38px;
+  text-align: right;
+}
+.pct-bar {
+  display: inline-block;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--gemini-gradient);
+  min-width: 2px;
+  max-width: 80px;
+  opacity: 0.7;
+  transition: width var(--dur-m) var(--ease-standard);
 }
 
 /* ── API Reference ──────────────────────────────────────────────── */
@@ -861,6 +901,122 @@ code {
   color: var(--md-on-surface-variant);
 }
 
+/* ── Method badges for DELETE ────────────────────────────────────── */
+.method-delete { background: rgba(255, 100, 80, 0.15); color: #FF8A80; }
+
+/* ── cURL Example Tabs ───────────────────────────────────────────── */
+.curl-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.curl-tab-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.curl-tab-btn {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--md-outline-variant);
+  background: transparent;
+  color: var(--md-on-surface-variant);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.curl-tab-btn:hover {
+  background: var(--md-surface-container-high);
+  color: var(--md-on-surface);
+}
+
+.curl-tab-btn.active {
+  background: var(--md-primary-container);
+  border-color: var(--md-primary);
+  color: var(--md-on-primary-container);
+}
+
+.curl-panel { display: none; }
+.curl-panel.active { display: block; }
+
+.curl-desc {
+  margin: 0 0 10px;
+}
+
+.curl-code-wrap {
+  position: relative;
+}
+
+.curl-code {
+  background: var(--md-surface-container-lowest);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  padding-right: 80px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  color: var(--md-on-surface);
+  white-space: pre;
+  overflow-x: auto;
+  margin: 0;
+}
+
+.curl-copy-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+.guide-steps {
+  margin: 8px 0 0;
+  padding-left: 0;
+  list-style: none;
+  counter-reset: guide-counter;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.guide-steps li {
+  counter-increment: guide-counter;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--md-on-surface);
+}
+.guide-steps li::before {
+  content: counter(guide-counter);
+  min-width: 24px;
+  height: 24px;
+  background: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.guide-steps code {
+  background: var(--md-surface-container-lowest);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82em;
+}
+
 /* ── Responsive ─────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   main { padding: 12px; }
@@ -873,6 +1029,8 @@ code {
   .text-input { min-width: 100%; }
   .logs-toolbar { flex-direction: column; align-items: stretch; }
   .api-ref-baseurl { flex-wrap: wrap; }
+  .curl-code { font-size: 0.72rem; padding-right: 70px; }
+  .curl-tab-btn { font-size: 0.75rem; padding: 5px 10px; }
 }
 @media (max-width: 480px) {
   .stats-grid { grid-template-columns: 1fr; }

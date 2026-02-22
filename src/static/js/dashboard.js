@@ -1,5 +1,13 @@
 // src/static/js/dashboard.js - Dashboard tab logic
 
+function _relativeTime(secondsAgo) {
+    if (secondsAgo < 5) return "just now";
+    if (secondsAgo < 60) return `${Math.floor(secondsAgo)}s ago`;
+    if (secondsAgo < 3600) return `${Math.floor(secondsAgo / 60)}m ago`;
+    if (secondsAgo < 86400) return `${Math.floor(secondsAgo / 3600)}h ago`;
+    return `${Math.floor(secondsAgo / 86400)}d ago`;
+}
+
 function copyText(text) {
     if (navigator.clipboard && window.isSecureContext) {
         return navigator.clipboard.writeText(text);
@@ -17,17 +25,97 @@ function copyText(text) {
 }
 
 const API_ENDPOINTS = [
-    { method: "GET",  path: "/v1/models", desc: "List available models" },
-    { method: "POST", path: "/v1/chat/completions", desc: "Chat completions — OpenAI format" },
+    { method: "GET",  path: "/v1/models",            desc: "List available models" },
+    { method: "POST", path: "/v1/chat/completions",  desc: "Chat completions — OpenAI format (text + vision)" },
+    { method: "POST", path: "/v1/responses",         desc: "Responses API — Home Assistant openai_conversation format (camera images)" },
+    { method: "POST", path: "/v1/files",             desc: "Upload image/PDF — returns file_id" },
+    { method: "GET",  path: "/v1/files/{file_id}",   desc: "Get uploaded file info" },
+    { method: "DELETE", path: "/v1/files/{file_id}", desc: "Delete uploaded file" },
     { method: "POST", path: "/v1beta/models/{model}", desc: "Generate content — Google AI format" },
-    { method: "POST", path: "/gemini", desc: "Generate content — simple JSON format" },
-    { method: "POST", path: "/gemini-chat", desc: "Chat with context — simple JSON format" },
+    { method: "POST", path: "/gemini",               desc: "Generate content (text + images in response)" },
+    { method: "POST", path: "/gemini-chat",          desc: "Stateful chat with session context" },
+];
+
+// ---------------------------------------------------------------------------
+// cURL Usage Examples
+// ---------------------------------------------------------------------------
+const CURL_EXAMPLES = [
+    {
+        id: "chat",
+        label: "💬 Chat",
+        desc: "Dùng cho mọi client OpenAI-compatible: Home Assistant, n8n, LangChain... Đổi <code>model</code> thành <code>gemini-3.0-pro</code> hoặc <code>gemini-3.0-flash-thinking</code> nếu cần.",
+        curl: (base) => `curl -X POST ${base}/v1/chat/completions \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "model": "gemini-3.0-flash",
+    "messages": [
+      {"role": "user", "content": "Xin chào!"}
+    ]
+  }'`,
+    },
+    {
+        id: "vision",
+        label: "🖼️ Vision",
+        desc: "Gửi ảnh kèm câu hỏi. Dùng <code>data:image/jpeg;base64,...</code> cho ảnh inline, hoặc URL công khai — server tự tải về.",
+        curl: (base) => `# Dùng URL công khai
+curl -X POST ${base}/v1/chat/completions \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "model": "gemini-3.0-flash",
+    "messages": [{
+      "role": "user",
+      "content": [
+        {"type": "text",      "text": "Ảnh này chụp gì?"},
+        {"type": "image_url", "image_url": {"url": "https://example.com/photo.jpg"}}
+      ]
+    }]
+  }'
+
+# Hoặc dùng base64 (Home Assistant dùng format này)
+# "url": "data:image/jpeg;base64,<BASE64_DATA>"`,
+    },
+    {
+        id: "image-gen",
+        label: "🎨 Tạo ảnh",
+        desc: "Yêu cầu Gemini sinh ảnh. Kết quả trả về trong <code>images[]</code> gồm URL và base64.",
+        curl: (base) => `curl -X POST ${base}/gemini \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "model": "gemini-3.0-flash",
+    "message": "Vẽ một bức tranh hoàng hôn trên biển"
+  }'`,
+    },
+    {
+        id: "home-assistant",
+        label: "🏠 Home Assistant",
+        desc: "Tích hợp service này vào Home Assistant qua extension <strong>Local OpenAI LLM</strong> (cài qua HACS). Hỗ trợ chat, điều khiển thiết bị và phân tích ảnh camera.",
+        steps: [
+            "Cài <strong>Local OpenAI LLM</strong> qua HACS: thêm custom repo <code>https://github.com/skye-harris/hass_local_openai_llm</code> → chọn <em>Integration</em> → Install.",
+            "Vào <em>Settings → Devices &amp; Services → Add Integration</em>, tìm <strong>Local OpenAI LLM</strong>.",
+            "Điền <strong>Server URL</strong>: <code>" + location.origin + "/v1</code> &nbsp;·&nbsp; <strong>API Key</strong>: để trống.",
+            "Chọn <strong>Model</strong> từ dropdown — HA tự query <code>/v1/models</code> và hiện danh sách: <code>gemini-3.0-flash</code>, <code>gemini-3.0-pro</code>, <code>gemini-3.0-flash-thinking</code>.",
+            "<strong>Chat / Assist:</strong> tạo subentry <em>Conversation Agent</em> → chọn model vừa cấu hình.",
+            "<strong>Phân tích ảnh camera:</strong> tạo subentry <em>AI Task Agent</em> → HA tự gửi ảnh qua <code>/v1/chat/completions</code>, không cần cấu hình thêm.",
+        ],
+    },
+    {
+        id: "list-models",
+        label: "📋 Models",
+        desc: "Lấy danh sách model hiện có.",
+        curl: (base) => `curl ${base}/v1/models`,
+    },
 ];
 
 const Dashboard = {
     intervalId: null,
 
+    _activeCurlTab: null,
+
     init() {
+        // Render static sections
+        this.renderApiReference();
+        this.renderCurlExamples();
+
         document.getElementById("btn-reinit").addEventListener("click", async () => {
             const btn = document.getElementById("btn-reinit");
             const resultEl = document.getElementById("reinit-result");
@@ -49,9 +137,6 @@ const Dashboard = {
                 this.refresh();
             }
         });
-
-        // Render API Reference (static, only once)
-        this.renderApiReference();
 
         // Copy button handlers
         document.querySelectorAll(".btn-copy").forEach(btn => {
@@ -86,7 +171,7 @@ const Dashboard = {
         try {
             const data = await api.get("/api/admin/status");
             this.updateCards(data);
-            this.updateEndpointTable(data.stats.endpoints);
+            this.updateEndpointTable(data.stats.endpoints, data.stats.endpoints_detail, data.stats.total_requests);
         } catch {
             document.getElementById("val-status").textContent = "Error";
         }
@@ -130,10 +215,11 @@ const Dashboard = {
         badge.className = "status-badge " + data.gemini_status;
     },
 
-    updateEndpointTable(endpoints) {
+    updateEndpointTable(endpoints, endpointsDetail, totalRequests) {
         const tbody = document.getElementById("endpoint-tbody");
         const noData = document.getElementById("no-endpoints");
-        const entries = Object.entries(endpoints || {});
+        const detail = endpointsDetail || {};
+        const entries = Object.entries(detail);
 
         if (entries.length === 0) {
             tbody.innerHTML = "";
@@ -142,10 +228,29 @@ const Dashboard = {
         }
 
         noData.classList.add("hidden");
-        entries.sort((a, b) => b[1] - a[1]);
-        tbody.innerHTML = entries
-            .map(([path, count]) => `<tr><td>${escapeHtml(path)}</td><td>${count}</td></tr>`)
-            .join("");
+        entries.sort((a, b) => b[1].count - a[1].count);
+
+        const total = totalRequests || 1;
+        const now = Date.now() / 1000;
+
+        tbody.innerHTML = entries.map(([path, d]) => {
+            const pct = total > 0 ? ((d.count / total) * 100).toFixed(1) : "0.0";
+            const lastSeen = d.last_seen ? _relativeTime(now - d.last_seen) : "—";
+            const errClass = d.error > 0 ? ' class="ep-err"' : '';
+            return `<tr>
+                <td class="ep-path">${escapeHtml(path)}</td>
+                <td class="col-num ep-count">${d.count}</td>
+                <td class="col-num ep-ok">${d.success}</td>
+                <td class="col-num"${errClass}>${d.error}</td>
+                <td class="col-num ep-pct">
+                    <span class="pct-bar-wrap">
+                        <span class="pct-bar" style="width:${Math.min(parseFloat(pct),100)}%"></span>
+                        <span class="pct-label">${pct}%</span>
+                    </span>
+                </td>
+                <td class="ep-last">${escapeHtml(lastSeen)}</td>
+            </tr>`;
+        }).join("");
     },
 
     getBaseUrl() {
@@ -159,19 +264,76 @@ const Dashboard = {
         const tbody = document.getElementById("api-ref-tbody");
         tbody.innerHTML = API_ENDPOINTS.map(ep => {
             const fullUrl = baseUrl + ep.path;
+            const methodLower = ep.method.toLowerCase();
             return `<tr>
-                <td><span class="method-badge method-${ep.method.toLowerCase()}">${ep.method}</span></td>
+                <td><span class="method-badge method-${methodLower}">${ep.method}</span></td>
                 <td><code class="api-url">${escapeHtml(fullUrl)}</code></td>
                 <td class="api-desc">${escapeHtml(ep.desc)}</td>
                 <td><button class="btn btn-small btn-copy" data-copy-value="${escapeHtml(fullUrl)}" title="Copy URL">Copy</button></td>
             </tr>`;
         }).join("");
 
-        // Attach click handlers for dynamically created copy buttons
         tbody.querySelectorAll(".btn-copy").forEach(btn => {
             btn.addEventListener("click", () => {
                 const text = btn.dataset.copyValue;
                 copyText(text).then(() => {
+                    const orig = btn.textContent;
+                    btn.textContent = "Copied!";
+                    btn.classList.add("copied");
+                    setTimeout(() => { btn.textContent = orig; btn.classList.remove("copied"); }, 1500);
+                });
+            });
+        });
+    },
+
+    renderCurlExamples() {
+        const baseUrl = this.getBaseUrl();
+        const container = document.getElementById("curl-tabs");
+        if (!container) return;
+
+        // Tab buttons row
+        const tabsHtml = CURL_EXAMPLES.map((ex, i) =>
+            `<button class="curl-tab-btn${i === 0 ? " active" : ""}" data-tab="${ex.id}">${escapeHtml(ex.label)}</button>`
+        ).join("");
+
+        // Panels
+        const panelsHtml = CURL_EXAMPLES.map((ex, i) => {
+            let bodyHtml;
+            if (ex.steps) {
+                const items = ex.steps.map(s => `<li>${s}</li>`).join("");
+                bodyHtml = `<ol class="guide-steps">${items}</ol>`;
+            } else {
+                const curlText = ex.curl(baseUrl);
+                bodyHtml = `<div class="curl-code-wrap">
+                    <pre class="curl-code" id="curl-code-${ex.id}">${escapeHtml(curlText)}</pre>
+                    <button class="btn btn-small btn-copy curl-copy-btn" data-copy-id="curl-code-${ex.id}">Copy</button>
+                </div>`;
+            }
+            return `<div class="curl-panel${i === 0 ? " active" : ""}" id="curl-panel-${ex.id}">
+                <p class="help-text curl-desc">${ex.desc}</p>
+                ${bodyHtml}
+            </div>`;
+        }).join("");
+
+        container.innerHTML = `<div class="curl-tab-bar">${tabsHtml}</div><div class="curl-panels">${panelsHtml}</div>`;
+
+        // Tab switching
+        container.querySelectorAll(".curl-tab-btn").forEach(btn => {
+            btn.addEventListener("click", () => {
+                const tabId = btn.dataset.tab;
+                container.querySelectorAll(".curl-tab-btn").forEach(b => b.classList.remove("active"));
+                container.querySelectorAll(".curl-panel").forEach(p => p.classList.remove("active"));
+                btn.classList.add("active");
+                container.querySelector(`#curl-panel-${tabId}`)?.classList.add("active");
+            });
+        });
+
+        // Copy buttons
+        container.querySelectorAll(".curl-copy-btn").forEach(btn => {
+            btn.addEventListener("click", () => {
+                const el = document.getElementById(btn.dataset.copyId);
+                if (!el) return;
+                copyText(el.textContent).then(() => {
                     const orig = btn.textContent;
                     btn.textContent = "Copied!";
                     btn.classList.add("copied");
