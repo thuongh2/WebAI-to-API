@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException
 
 from app.logger import logger
 from app.services.gemini_client import GeminiClientNotInitializedError, get_gemini_client
+from app.services.telegram_notifier import TelegramNotifier
 from app.services.session_manager import get_gemini_chat_manager
 from app.utils.image_utils import cleanup_temp_files, serialize_response_images
 from schemas.request import GeminiRequest
@@ -54,7 +55,14 @@ async def gemini_generate(request: GeminiRequest):
 
     except Exception as e:
         logger.error(f"Error in /gemini endpoint: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Error generating content: {str(e)}")
+        err_str = str(e)
+        err_lower = err_str.lower()
+        notifier = TelegramNotifier.get_instance()
+        if "auth" in err_lower or "cookie" in err_lower:
+            await notifier.notify_error("auth", "Authentication failed", "/gemini", err_str)
+        else:
+            await notifier.notify_error("500", "Unexpected error", "/gemini", err_str)
+        raise HTTPException(status_code=500, detail=f"Error generating content: {err_str}")
 
 
 @router.post("/gemini-chat")
@@ -90,4 +98,11 @@ async def gemini_chat(request: GeminiRequest):
 
     except Exception as e:
         logger.error(f"Error in /gemini-chat endpoint: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Error in chat: {str(e)}")
+        err_str = str(e)
+        err_lower = err_str.lower()
+        notifier = TelegramNotifier.get_instance()
+        if "auth" in err_lower or "cookie" in err_lower:
+            await notifier.notify_error("auth", "Authentication failed", "/gemini-chat", err_str)
+        else:
+            await notifier.notify_error("500", "Unexpected error", "/gemini-chat", err_str)
+        raise HTTPException(status_code=500, detail=f"Error in chat: {err_str}")

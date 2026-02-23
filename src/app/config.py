@@ -51,6 +51,13 @@ def load_config(config_file: str = None) -> configparser.ConfigParser:
         config["AI"] = {"default_model_gemini": "gemini-3.0-flash"}
     if "Proxy" not in config:
         config["Proxy"] = {"http_proxy": ""}
+    if "Telegram" not in config:
+        config["Telegram"] = {
+            "enabled": "false",
+            "bot_token": "",
+            "chat_id": "",
+            "cooldown_seconds": "60",
+        }
 
     # Save changes to the configuration file, also with UTF-8 encoding.
     try:

@@ -13,6 +13,10 @@ const Config = {
 
         // Proxy save
         document.getElementById("btn-save-proxy").addEventListener("click", () => this.handleProxySave());
+
+        // Telegram
+        document.getElementById("btn-save-telegram").addEventListener("click", () => this.handleTelegramSave());
+        document.getElementById("btn-test-telegram").addEventListener("click", () => this.handleTelegramTest());
     },
 
     activate() {
@@ -25,6 +29,12 @@ const Config = {
         try {
             const data = await api.get("/api/admin/config");
             this.updateDisplay(data);
+        } catch {
+            // Ignore on error
+        }
+        try {
+            const tg = await api.get("/api/admin/config/telegram");
+            this.updateTelegramDisplay(tg);
         } catch {
             // Ignore on error
         }
@@ -143,6 +153,49 @@ const Config = {
             Dashboard.refresh();
         } catch {
             showInline(result, "Failed", true);
+        }
+    },
+
+    updateTelegramDisplay(data) {
+        document.getElementById("telegram-enabled").checked = !!data.enabled;
+        document.getElementById("telegram-chatid").value = data.chat_id || "";
+        document.getElementById("telegram-cooldown").value = data.cooldown_seconds || 60;
+        const preview = document.getElementById("telegram-token-preview");
+        preview.textContent = data.bot_token_preview ? `Current token: ${data.bot_token_preview}` : "";
+    },
+
+    async handleTelegramSave() {
+        const enabled = document.getElementById("telegram-enabled").checked;
+        const bot_token = document.getElementById("telegram-token").value.trim();
+        const chat_id = document.getElementById("telegram-chatid").value.trim();
+        const cooldown_seconds = parseInt(document.getElementById("telegram-cooldown").value, 10) || 60;
+        const result = document.getElementById("telegram-result");
+        try {
+            await api.post("/api/admin/config/telegram", { enabled, bot_token, chat_id, cooldown_seconds });
+            showInline(result, "Saved", false);
+            // Clear token field and refresh preview
+            document.getElementById("telegram-token").value = "";
+            const tg = await api.get("/api/admin/config/telegram");
+            this.updateTelegramDisplay(tg);
+        } catch {
+            showInline(result, "Failed", true);
+        }
+    },
+
+    async handleTelegramTest() {
+        const result = document.getElementById("telegram-result");
+        const btn = document.getElementById("btn-test-telegram");
+        btn.disabled = true;
+        btn.textContent = "Sending...";
+        try {
+            const data = await api.post("/api/admin/config/telegram/test", {});
+            showInline(result, data.message, !data.success);
+        } catch (err) {
+            const msg = (err && err.detail) ? err.detail : "Failed — check token and chat_id";
+            showInline(result, msg, true);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "Send Test";
         }
     },
 };

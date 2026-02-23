@@ -10,6 +10,7 @@ from fastapi.responses import StreamingResponse
 from app.config import CONFIG
 from app.logger import logger
 from app.services.gemini_client import GeminiClientNotInitializedError, get_gemini_client
+from app.services.telegram_notifier import TelegramNotifier
 from app.services.session_manager import get_translate_session_manager
 from app.utils.image_utils import (
     cleanup_temp_files,
@@ -392,14 +393,18 @@ async def chat_completions(request: OpenAIChatRequest):
     except Exception as e:
         err_str = str(e)
         err_lower = err_str.lower()
+        notifier = TelegramNotifier.get_instance()
         if "auth" in err_lower or "cookie" in err_lower:
             logger.error(f"[chat/completions] Auth error: {e}")
+            await notifier.notify_error("auth", "Authentication failed", "/v1/chat/completions", err_str)
             raise HTTPException(status_code=401, detail=f"Gemini authentication failed: {err_str}")
         elif "zombie" in err_lower or "parse" in err_lower or "stalled" in err_lower:
             logger.error(f"[chat/completions] Stream error after retries (model={model_value}): {e}")
+            await notifier.notify_error("503", "Stream temporarily unavailable", "/v1/chat/completions", err_str)
             raise HTTPException(status_code=503, detail="Gemini stream temporarily unavailable — please retry")
         else:
             logger.error(f"[chat/completions] Unexpected error (model={model_value}): {e}", exc_info=True)
+            await notifier.notify_error("500", "Unexpected error", "/v1/chat/completions", err_str)
             raise HTTPException(status_code=500, detail=f"Error processing chat completion: {err_str}")
 
     finally:

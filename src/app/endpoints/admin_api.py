@@ -16,6 +16,7 @@ from app.services.gemini_client import (
 from app.services.curl_parser import parse_curl_command
 from app.services.log_broadcaster import SSELogBroadcaster
 from app.services.stats_collector import StatsCollector
+from app.services.telegram_notifier import TelegramNotifier
 
 router = APIRouter(prefix="/api/admin", tags=["Admin API"])
 
@@ -38,6 +39,13 @@ class ModelUpdateRequest(BaseModel):
 
 class ProxyUpdateRequest(BaseModel):
     http_proxy: str
+
+
+class TelegramUpdateRequest(BaseModel):
+    enabled: bool
+    bot_token: str
+    chat_id: str
+    cooldown_seconds: int = 60
 
 
 # --- Dashboard ---
@@ -203,6 +211,49 @@ async def get_recent_logs(count: int = 50):
     """Return recent log entries for initial page load."""
     broadcaster = SSELogBroadcaster.get_instance()
     return {"logs": broadcaster.get_recent(count)}
+
+
+# --- Telegram ---
+
+
+@router.get("/config/telegram")
+async def get_telegram_config():
+    """Return current Telegram notification settings (token masked)."""
+    section = CONFIG["Telegram"] if "Telegram" in CONFIG else {}
+    bot_token = section.get("bot_token", "")
+    return {
+        "enabled": str(section.get("enabled", "false")).lower() == "true",
+        "bot_token_preview": _mask_value(bot_token),
+        "chat_id": section.get("chat_id", ""),
+        "cooldown_seconds": int(section.get("cooldown_seconds", 60)),
+    }
+
+
+@router.post("/config/telegram")
+async def update_telegram_config(request: TelegramUpdateRequest):
+    """Save Telegram notification settings."""
+    if "Telegram" not in CONFIG:
+        CONFIG["Telegram"] = {}
+    CONFIG["Telegram"]["enabled"] = "true" if request.enabled else "false"
+    CONFIG["Telegram"]["bot_token"] = request.bot_token
+    CONFIG["Telegram"]["chat_id"] = request.chat_id
+    CONFIG["Telegram"]["cooldown_seconds"] = str(request.cooldown_seconds)
+    write_config(CONFIG)
+    logger.info(f"Telegram notifications {'enabled' if request.enabled else 'disabled'}.")
+    return {"success": True}
+
+
+@router.post("/config/telegram/test")
+async def test_telegram_notification():
+    """Send a test Telegram message using the currently saved credentials."""
+    section = CONFIG["Telegram"] if "Telegram" in CONFIG else {}
+    bot_token = section.get("bot_token", "").strip()
+    chat_id = section.get("chat_id", "").strip()
+    if not bot_token or not chat_id:
+        raise HTTPException(status_code=400, detail="bot_token and chat_id must be configured first.")
+    notifier = TelegramNotifier.get_instance()
+    ok, msg = await notifier.send_test(bot_token, chat_id)
+    return {"success": ok, "message": msg}
 
 
 # --- Helpers ---
