@@ -7,6 +7,8 @@ A FastAPI server that exposes Google Gemini (via browser cookies) as a local Ope
 
 Compatible with any tool that supports the OpenAI API format: [Open WebUI](https://github.com/open-webui/open-webui), [Cursor](https://cursor.sh), [Continue](https://continue.dev), custom scripts, etc.
 
+![1771806187019](assets/1771806187019.png)
+
 ---
 
 ## Deploy with Docker Compose
@@ -90,11 +92,11 @@ API Key:  not-needed
 
 ### Supported models
 
-| Model | Description |
-|-------|-------------|
-| `gemini-3.0-pro` | Most capable (requires Gemini Advanced) |
-| `gemini-3.0-flash` | Fast, efficient (default) |
-| `gemini-3.0-flash-thinking` | Extended thinking |
+| Model                         | Description                             |
+| ----------------------------- | --------------------------------------- |
+| `gemini-3.0-pro`            | Most capable (requires Gemini Advanced) |
+| `gemini-3.0-flash`          | Fast, efficient (default)               |
+| `gemini-3.0-flash-thinking` | Extended thinking                       |
 
 ### Example: curl
 
@@ -128,15 +130,15 @@ print(response.choices[0].message.content)
 
 ## Endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET`  | `/v1/models` | List available models |
+| Method   | Path                     | Description                                  |
+| -------- | ------------------------ | -------------------------------------------- |
+| `GET`  | `/v1/models`           | List available models                        |
 | `POST` | `/v1/chat/completions` | OpenAI-compatible chat (streaming supported) |
-| `POST` | `/gemini` | Stateless single-turn request |
-| `POST` | `/gemini-chat` | Stateful multi-turn chat |
-| `POST` | `/translate` | Translation (alias for `/gemini-chat`) |
-| `GET`  | `/admin` | Admin dashboard |
-| `GET`  | `/docs` | Swagger UI |
+| `POST` | `/gemini`              | Stateless single-turn request                |
+| `POST` | `/gemini-chat`         | Stateful multi-turn chat                     |
+| `POST` | `/translate`           | Translation (alias for `/gemini-chat`)     |
+| `GET`  | `/admin`               | Admin dashboard                              |
+| `GET`  | `/docs`                | Swagger UI                                   |
 
 ---
 
