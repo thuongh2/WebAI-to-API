@@ -849,17 +849,45 @@ details.collapsible summary::-webkit-details-marker { display: none; }
   margin-bottom: 14px;
   flex-wrap: wrap;
 }
+/* ── M3 Checkbox ────────────────────────────────────────────────── */
 .checkbox-label {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   font-size: 0.875rem;
-  color: var(--md-on-surface-variant);
+  font-weight: 500;
+  color: var(--md-on-surface);
   cursor: pointer;
   user-select: none;
-  padding: 0 4px;
+  padding: 2px 0;
+  transition: color var(--dur-s) var(--ease-standard);
 }
-.checkbox-label input[type="checkbox"] { accent-color: var(--md-primary); }
+.checkbox-label input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  border: 2px solid var(--md-on-surface-variant);
+  border-radius: 2px;
+  background: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+  vertical-align: middle;
+  transition: background var(--dur-s) var(--ease-standard),
+              border-color var(--dur-s) var(--ease-standard);
+}
+.checkbox-label:hover input[type="checkbox"] {
+  border-color: var(--md-on-surface);
+}
+.checkbox-label input[type="checkbox"]:checked {
+  background: var(--md-primary);
+  border-color: var(--md-primary);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cpolyline points='4 9.5 7.5 13 14 5.5' fill='none' stroke='%23062E6F' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-size: 18px 18px;
+  background-position: center;
+  background-repeat: no-repeat;
+}
 
 .log-container {
   background: var(--md-surface-container-lowest);

@@ -59,6 +59,7 @@ class TelegramUpdateRequest(BaseModel):
     bot_token: str
     chat_id: str
     cooldown_seconds: int = 60
+    notify_types: list[str] = ["auth"]
 
 
 # --- Dashboard ---
@@ -235,11 +236,14 @@ async def get_telegram_config():
     """Return current Telegram notification settings (token masked)."""
     section = CONFIG["Telegram"] if "Telegram" in CONFIG else {}
     bot_token = section.get("bot_token", "")
+    raw_types = section.get("notify_types", "auth").strip()
+    notify_types = [t.strip() for t in raw_types.split(",") if t.strip()]
     return {
         "enabled": str(section.get("enabled", "false")).lower() == "true",
         "bot_token_preview": _mask_value(bot_token),
         "chat_id": section.get("chat_id", ""),
         "cooldown_seconds": int(section.get("cooldown_seconds", 60)),
+        "notify_types": notify_types,
     }
 
 
@@ -252,8 +256,9 @@ async def update_telegram_config(request: TelegramUpdateRequest):
     CONFIG["Telegram"]["bot_token"] = request.bot_token
     CONFIG["Telegram"]["chat_id"] = request.chat_id
     CONFIG["Telegram"]["cooldown_seconds"] = str(request.cooldown_seconds)
+    CONFIG["Telegram"]["notify_types"] = ",".join(request.notify_types)
     write_config(CONFIG)
-    logger.info(f"Telegram notifications {'enabled' if request.enabled else 'disabled'}.")
+    logger.info(f"Telegram notifications {'enabled' if request.enabled else 'disabled'} (types: {request.notify_types}).")
     return {"success": True}
 
 

@@ -18,6 +18,9 @@ _TELEGRAM_API = "https://api.telegram.org/bot{token}/sendMessage"
 # Minimum seconds between notifications of the same error type
 _DEFAULT_COOLDOWN = 60
 
+# Only send notifications for these error types by default (auth = cookie expired)
+_DEFAULT_NOTIFY_TYPES = "auth"
+
 
 class TelegramNotifier:
     """Singleton Telegram alert service."""
@@ -41,11 +44,14 @@ class TelegramNotifier:
     @staticmethod
     def _cfg() -> dict:
         section = CONFIG["Telegram"] if "Telegram" in CONFIG else {}
+        raw_types = section.get("notify_types", _DEFAULT_NOTIFY_TYPES).strip()
+        notify_types = {t.strip() for t in raw_types.split(",") if t.strip()}
         return {
             "enabled": str(section.get("enabled", "false")).lower() == "true",
             "bot_token": section.get("bot_token", "").strip(),
             "chat_id": section.get("chat_id", "").strip(),
             "cooldown": int(section.get("cooldown_seconds", _DEFAULT_COOLDOWN)),
+            "notify_types": notify_types,
         }
 
     # ------------------------------------------------------------------
@@ -79,6 +85,10 @@ class TelegramNotifier:
         if not cfg["enabled"]:
             return False
         if not cfg["bot_token"] or not cfg["chat_id"]:
+            return False
+
+        # Type filter — only send for configured error types
+        if error_type not in cfg["notify_types"]:
             return False
 
         # Cooldown guard

@@ -17,6 +17,7 @@ const Config = {
         // Telegram
         document.getElementById("btn-save-telegram").addEventListener("click", () => this.handleTelegramSave());
         document.getElementById("btn-test-telegram").addEventListener("click", () => this.handleTelegramTest());
+
     },
 
     activate() {
@@ -162,6 +163,12 @@ const Config = {
         document.getElementById("telegram-cooldown").value = data.cooldown_seconds || 60;
         const preview = document.getElementById("telegram-token-preview");
         preview.textContent = data.bot_token_preview || "";
+        // Notify types checkboxes
+        const types = data.notify_types || ["auth"];
+        ["auth", "503", "500"].forEach(t => {
+            const el = document.getElementById("notify-" + t);
+            if (el) el.checked = types.includes(t);
+        });
     },
 
     async handleTelegramSave() {
@@ -169,9 +176,13 @@ const Config = {
         const bot_token = document.getElementById("telegram-token").value.trim();
         const chat_id = document.getElementById("telegram-chatid").value.trim();
         const cooldown_seconds = parseInt(document.getElementById("telegram-cooldown").value, 10) || 60;
+        const notify_types = ["auth", "503", "500"].filter(t => {
+            const el = document.getElementById("notify-" + t);
+            return el && el.checked;
+        });
         const result = document.getElementById("telegram-result");
         try {
-            await api.post("/api/admin/config/telegram", { enabled, bot_token, chat_id, cooldown_seconds });
+            await api.post("/api/admin/config/telegram", { enabled, bot_token, chat_id, cooldown_seconds, notify_types });
             showInline(result, "Saved", false);
             // Clear token field and refresh preview
             document.getElementById("telegram-token").value = "";

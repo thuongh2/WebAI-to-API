@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', path='css/admin.css') }}?v=11">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/admin.css') }}?v=12">
 </head>
 <body>
     <header class="admin-header">
@@ -230,7 +230,7 @@
                     <span class="material-symbols-outlined">send</span>
                     Telegram Notifications
                 </h3>
-                <p class="help-text">Send alerts to Telegram when API errors occur (auth failures, 5xx errors).</p>
+                <p class="help-text">Send alerts to Telegram when selected API errors occur.</p>
                 <div class="config-row">
                     <label class="checkbox-label">
                         <input type="checkbox" id="telegram-enabled">
@@ -245,6 +245,23 @@
                 <div class="form-group">
                     <label for="telegram-chatid">Chat ID</label>
                     <input type="text" id="telegram-chatid" class="text-input" placeholder="-100123456789">
+                </div>
+                <div class="form-group">
+                    <label>Notify on error types</label>
+                    <div class="config-row" style="gap:16px; flex-wrap:wrap;">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="notify-auth" value="auth" checked>
+                            Auth / Cookie expired
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="notify-503" value="503">
+                            Stream error (503)
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="notify-500" value="500">
+                            Server error (500)
+                        </label>
+                    </div>
                 </div>
                 <div class="config-row">
                     <span class="config-label">Cooldown (seconds)</span>
@@ -280,10 +297,10 @@
         </section>
     </main>
 
-    <script src="{{ url_for('static', path='js/utils.js') }}?v=11"></script>
-    <script src="{{ url_for('static', path='js/dashboard.js') }}?v=11"></script>
-    <script src="{{ url_for('static', path='js/config.js') }}?v=11"></script>
-    <script src="{{ url_for('static', path='js/logs.js') }}?v=11"></script>
-    <script src="{{ url_for('static', path='js/app.js') }}?v=11"></script>
+    <script src="{{ url_for('static', path='js/utils.js') }}?v=12"></script>
+    <script src="{{ url_for('static', path='js/dashboard.js') }}?v=12"></script>
+    <script src="{{ url_for('static', path='js/config.js') }}?v=12"></script>
+    <script src="{{ url_for('static', path='js/logs.js') }}?v=12"></script>
+    <script src="{{ url_for('static', path='js/app.js') }}?v=12"></script>
 </body>
 </html>
