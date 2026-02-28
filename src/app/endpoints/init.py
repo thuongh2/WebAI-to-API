@@ -5,5 +5,6 @@ from .chat import router as chat_router
 from .google_generative import router as google_generative_router
 from .files import router as files_router
 from .responses import router as responses_router
+from .healthcheck import router as healthcheck_router
 
-__all__ = ["gemini_router", "chat_router", "google_generative_router", "files_router", "responses_router"]
+__all__ = ["gemini_router", "chat_router", "google_generative_router", "files_router", "responses_router", "healthcheck_router"]
