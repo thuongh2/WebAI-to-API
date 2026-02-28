@@ -61,7 +61,7 @@ def _load_from_env(config: configparser.ConfigParser) -> None:
         config["Telegram"]["enabled"] = _env_truthy(telegram_enabled)
 
 
-def _ensure_config_exists(config_file: str) -> None:
+def _ensure_config_exists(config_file: str) -> bool:
     """If config_file doesn't exist, copy from bundled default or create empty.
 
     Handles the Docker volume edge-case where Docker creates a *directory* at the
@@ -78,33 +78,50 @@ def _ensure_config_exists(config_file: str) -> None:
             )
         except Exception as e:
             logger.error(f"Could not remove directory '{config_file}': {e}")
-            return
+            return False
 
     if os.path.exists(config_file):
-        return
+        return True
 
     # Create parent directory if needed
     parent = os.path.dirname(config_file)
-    if parent:
-        os.makedirs(parent, exist_ok=True)
+    try:
+        if parent:
+            os.makedirs(parent, exist_ok=True)
+    except OSError as e:
+        logger.warning(
+            f"Cannot create parent directory for config '{config_file}': {e}. "
+            "Continuing with in-memory/env configuration."
+        )
+        return False
 
     # Copy bundled template as starting point
     bundled = os.path.join(os.path.dirname(os.path.dirname(__file__)), "..", "config.conf")
-    if os.path.isfile(bundled):
-        shutil.copy2(bundled, config_file)
-        logger.info(f"Copied bundled config to '{config_file}'")
-    else:
-        # Fallback: create an empty file so configparser has something to read
-        open(config_file, "w", encoding="utf-8").close()
-        logger.info(f"Created empty config file at '{config_file}'")
+    try:
+        if os.path.isfile(bundled):
+            shutil.copy2(bundled, config_file)
+            logger.info(f"Copied bundled config to '{config_file}'")
+        else:
+            # Fallback: create an empty file so configparser has something to read
+            open(config_file, "w", encoding="utf-8").close()
+            logger.info(f"Created empty config file at '{config_file}'")
+    except OSError as e:
+        logger.warning(
+            f"Cannot write config file '{config_file}': {e}. "
+            "Continuing with in-memory/env configuration."
+        )
+        return False
+
+    return True
 
 
 def load_config(config_file: str = None) -> configparser.ConfigParser:
     if config_file is None:
         config_file = DEFAULT_CONFIG_PATH
     use_env_fallback = _is_missing_or_empty_config(config_file)
+    config_ready = False
     if config_file and str(config_file).strip():
-        _ensure_config_exists(config_file)
+        config_ready = _ensure_config_exists(config_file)
     else:
         logger.warning("CONFIG_PATH is empty. Falling back to environment variables.")
 
@@ -138,7 +155,7 @@ def load_config(config_file: str = None) -> configparser.ConfigParser:
             "cooldown_seconds": "60",
         }
 
-    if use_env_fallback:
+    if use_env_fallback or not config_ready:
         _load_from_env(config)
 
     # Save changes to the configuration file, also with UTF-8 encoding.
