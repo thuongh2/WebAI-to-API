@@ -1,5 +1,6 @@
 # src/app/services/gemini_client.py
 import asyncio
+import os
 from models.gemini import MyGeminiClient
 from app.config import CONFIG, write_config
 from app.logger import logger
@@ -20,6 +21,17 @@ _initialization_error = None
 _error_code = None  # "auth_expired", "no_cookies", "network", "disabled", "unknown"
 _persist_task: asyncio.Task = None  # Background task for persisting rotated cookies
 
+
+def _normalize_cookie(value: str | None) -> str:
+    if value is None:
+        return ""
+    return value.strip().strip('"').strip("'")
+
+
+def _env_truthy(value: str | None) -> bool:
+    return str(value or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
 async def init_gemini_client() -> bool:
     """
     Initialize and set up the Gemini client based on the configuration.
@@ -30,50 +42,70 @@ async def init_gemini_client() -> bool:
     _error_code = None
 
     if CONFIG.getboolean("EnabledAI", "gemini", fallback=True):
-        try:
-            gemini_cookie_1PSID = CONFIG["Cookies"].get("gemini_cookie_1PSID")
-            gemini_cookie_1PSIDTS = CONFIG["Cookies"].get("gemini_cookie_1PSIDTS")
-            gemini_proxy = CONFIG["Proxy"].get("http_proxy")
+        gemini_proxy = CONFIG["Proxy"].get("http_proxy")
+        if gemini_proxy == "":
+            gemini_proxy = None
 
-            if not gemini_cookie_1PSID or not gemini_cookie_1PSIDTS:
-                cookies = get_cookie_from_browser("gemini")
-                if cookies:
-                    gemini_cookie_1PSID, gemini_cookie_1PSIDTS = cookies
+        env_1psid = _normalize_cookie(os.environ.get("GEMINI_COOKIE_1PSID"))
+        env_1psidts = _normalize_cookie(os.environ.get("GEMINI_COOKIE_1PSIDTS"))
+        cfg_1psid = _normalize_cookie(CONFIG["Cookies"].get("gemini_cookie_1PSID"))
+        cfg_1psidts = _normalize_cookie(CONFIG["Cookies"].get("gemini_cookie_1PSIDTS"))
 
-            if gemini_proxy == "":
-                gemini_proxy = None
+        candidates: list[tuple[str, str, str]] = []
+        if env_1psid and env_1psidts:
+            candidates.append(("env", env_1psid, env_1psidts))
+        if cfg_1psid and cfg_1psidts and (cfg_1psid, cfg_1psidts) != (env_1psid, env_1psidts):
+            candidates.append(("config", cfg_1psid, cfg_1psidts))
 
-            if gemini_cookie_1PSID and gemini_cookie_1PSIDTS:
-                _gemini_client = MyGeminiClient(secure_1psid=gemini_cookie_1PSID, secure_1psidts=gemini_cookie_1PSIDTS, proxy=gemini_proxy)
+        disable_browser_fallback = _env_truthy(os.environ.get("DISABLE_BROWSER_COOKIE_FALLBACK"))
+        if not candidates and not disable_browser_fallback:
+            cookies = get_cookie_from_browser("gemini")
+            if cookies:
+                browser_1psid, browser_1psidts = _normalize_cookie(cookies[0]), _normalize_cookie(cookies[1])
+                if browser_1psid and browser_1psidts:
+                    candidates.append(("browser", browser_1psid, browser_1psidts))
+
+        if not candidates:
+            _error_code = "no_cookies"
+            _initialization_error = (
+                "Gemini cookies not found. Provide GEMINI_COOKIE_1PSID and GEMINI_COOKIE_1PSIDTS "
+                "or set them in config."
+            )
+            logger.error(_initialization_error)
+            return False
+
+        last_auth_error = None
+        for source, gemini_cookie_1PSID, gemini_cookie_1PSIDTS in candidates:
+            try:
+                _gemini_client = MyGeminiClient(
+                    secure_1psid=gemini_cookie_1PSID,
+                    secure_1psidts=gemini_cookie_1PSIDTS,
+                    proxy=gemini_proxy,
+                )
                 await _gemini_client.init()
-                logger.info("Gemini client initialized successfully.")
+                logger.info(f"Gemini client initialized successfully using {source} cookies.")
                 return True
-            else:
-                _error_code = "no_cookies"
-                _initialization_error = "Gemini cookies not found."
-                logger.error(_initialization_error)
+            except AuthError as e:
+                last_auth_error = e
+                _gemini_client = None
+                logger.warning(f"Gemini auth failed using {source} cookies: {e}")
+            except (ConnectionError, OSError, TimeoutError) as e:
+                _error_code = "network"
+                _initialization_error = str(e)
+                logger.error(f"Network error initializing Gemini client: {e}")
+                _gemini_client = None
+                return False
+            except Exception as e:
+                _error_code = "unknown"
+                _initialization_error = str(e)
+                logger.error(f"Unexpected error initializing Gemini client: {e}", exc_info=True)
+                _gemini_client = None
                 return False
 
-        except AuthError as e:
-            _error_code = "auth_expired"
-            _initialization_error = str(e)
-            logger.error(f"Gemini authentication failed: {e}")
-            _gemini_client = None
-            return False
-
-        except (ConnectionError, OSError, TimeoutError) as e:
-            _error_code = "network"
-            _initialization_error = str(e)
-            logger.error(f"Network error initializing Gemini client: {e}")
-            _gemini_client = None
-            return False
-
-        except Exception as e:
-            _error_code = "unknown"
-            _initialization_error = str(e)
-            logger.error(f"Unexpected error initializing Gemini client: {e}", exc_info=True)
-            _gemini_client = None
-            return False
+        _error_code = "auth_expired"
+        _initialization_error = str(last_auth_error) if last_auth_error else "Gemini authentication failed."
+        logger.error(f"Gemini authentication failed: {_initialization_error}")
+        return False
     else:
         _error_code = "disabled"
         _initialization_error = "Gemini client is disabled in config."
@@ -162,4 +194,3 @@ def stop_cookie_persister():
         _persist_task.cancel()
         logger.info("Cookie persist task stopped.")
     _persist_task = None
-
